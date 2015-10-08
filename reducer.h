@@ -12,7 +12,7 @@ using namespace std;
 template<typename K, typename V>
 class Reducer {
  public:
-  virtual pair<K, V> reduce(K, const vector<V> &) = 0;
+  virtual pair<K, V> Reduce(K, const vector<V> &) = 0;
 };
 
 #endif //RDD_MAPREDUCE_REDUCER_H

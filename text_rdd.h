@@ -32,7 +32,7 @@ class TextRdd: public Rdd {
     }
 
     while (getline(str_stream, line)) {
-      mapper.Map(line, key_values);
+      mapper.Map(key_values, line);
     }
 
     return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(key_values));

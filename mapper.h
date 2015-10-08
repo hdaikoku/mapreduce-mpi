@@ -12,7 +12,7 @@ using namespace std;
 template<typename K, typename V, typename IV>
 class Mapper {
  public:
-  virtual void Map(IV, vector<pair<K, V>> &) = 0;
+  virtual void Map(vector<pair<K, V>> &, IV) = 0;
 };
 
 #endif //RDD_MAPREDUCE_MAPPER_H

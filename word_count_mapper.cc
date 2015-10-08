@@ -5,7 +5,7 @@
 #include <sstream>
 #include "word_count_mapper.h"
 
-void WordCountMapper::Map(string &iv, vector<pair<string, int>> &key_values) {
+void WordCountMapper::Map(vector<pair<string, int>> &key_values, string &iv) {
   string word;
   istringstream iss(iv);
 

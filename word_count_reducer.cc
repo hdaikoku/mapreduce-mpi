@@ -5,7 +5,7 @@
 #include <string>
 #include "word_count_reducer.h"
 
-pair<string, int> WordCountReducer::reduce(string k, const vector<int> &vector1) {
+pair<string, int> WordCountReducer::Reduce(string k, const vector<int> &vector1) {
   int sum = 0;
   for (auto v : vector1) {
     sum += v;

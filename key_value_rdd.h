@@ -36,14 +36,14 @@ class KeyValueRdd: public Rdd {
     vector<pair<K, V>> new_kvs;
     for (auto kv : kvs_) {
       if (prev != kv.first) {
-        new_kvs.push_back(reducer.reduce(prev, values));
+        new_kvs.push_back(reducer.Reduce(prev, values));
         values.clear();
         prev = kv.first;
       }
       values.push_back(kv.second);
     }
     if (values.size() > 0) {
-      new_kvs.push_back(reducer.reduce(prev, values));
+      new_kvs.push_back(reducer.Reduce(prev, values));
     }
 
     return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(new_kvs));
