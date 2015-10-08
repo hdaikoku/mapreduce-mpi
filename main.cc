@@ -9,7 +9,12 @@ int main(int argc, char **argv) {
   WordCountMapper wcm;
   WordCountReducer wcr;
 
-  auto text_rdd = TextRdd::FromTextFile("/Users/HDaikoku/Desktop/word_count.txt");
+  if (argc != 2) {
+    cerr << "Usage: " << argv[0] << " [text_file]" << endl;
+    return 1;
+  }
+
+  auto text_rdd = TextRdd::FromTextFile(argv[1]);
   auto key_value_rdd = text_rdd->Map(wcm);
   auto new_kvs = key_value_rdd->Reduce(wcr, hash<string>());
   new_kvs->PrintPairs();
