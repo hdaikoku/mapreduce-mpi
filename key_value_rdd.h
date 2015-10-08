@@ -6,6 +6,7 @@
 #define RDD_MAPREDUCE_KEYVALUERDD_H
 
 #include <vector>
+#include <numeric>
 #include "rdd.h"
 #include "reducer.h"
 #include "msgpack.hpp"
@@ -41,6 +42,9 @@ class KeyValueRdd: public Rdd {
       }
       values.push_back(kv.second);
     }
+    if (values.size() > 0) {
+      new_kvs.push_back(reducer.reduce(prev, values));
+    }
 
     return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(new_kvs));
   }
@@ -55,40 +59,41 @@ class KeyValueRdd: public Rdd {
       bufs[dest].push_back(kv);
     }
 
-    // sending out
+    //  pack the key-values
+    msgpack::sbuffer sbuf;
+    vector<int> scounts(n_workers_);
+    vector<int> sdispls(n_workers_);
+    int disp = 0;
     for (int i = 0; i < n_workers_; ++i) {
-      if (i == mpi_my_rank_) {
-        continue;
-      }
-
-      msgpack::sbuffer sbuf;
       msgpack::pack(sbuf, bufs[i]);
-
-      cout << mpi_my_rank_ << ": sending " << sbuf.size() << " to " << i << endl;
-
-      MPI::COMM_WORLD.Send(sbuf.data(), sbuf.size(), MPI::CHAR, i, 0);
+      int count = sbuf.size() - disp;
+      scounts[i] = count;
+      sdispls[i] = disp;
+      disp += count;
     }
 
+    vector<int> rcounts(n_workers_);
+    vector<int> rdispls(n_workers_);
+
+    // send & receive the sizes of the packed key-values
+    MPI::COMM_WORLD.Alltoall(scounts.data(), 1, MPI::INT, rcounts.data(), 1, MPI::INT);
+    disp = 0;
+    for (int i = 0; i < n_workers_; ++i) {
+      // calculate the displacements
+      rdispls[i] = disp;
+      disp += rcounts[i];
+    }
+
+    unique_ptr<char[]> rbuf(new char[accumulate(rcounts.begin(), rcounts.end(), 0)]);
+    MPI::COMM_WORLD.Alltoallv(sbuf.data(), scounts.data(), sdispls.data(), MPI::CHAR,
+                              rbuf.get(), rcounts.data(), rdispls.data(), MPI::CHAR);
+
     kvs_.clear();
-    kvs_.insert(kvs_.begin(), bufs[mpi_my_rank_].begin(), bufs[mpi_my_rank_].end());
+    free(sbuf.release());
 
     for (int i = 0; i < n_workers_; ++i) {
-      if (i == mpi_my_rank_) {
-        continue;
-      }
-
-      MPI::Status status;
-
-      // probe the incoming message from proc. i
-      MPI::COMM_WORLD.Probe(i, 0, status);
-      // get the length of the receiving message
-      int count = status.Get_count(MPI::CHAR);
-      msgpack::sbuffer sbuf(count);
-
-      MPI::COMM_WORLD.Recv(sbuf.data(), count, MPI::CHAR, i, 0);
-
       msgpack::unpacked result;
-      msgpack::unpack(result, sbuf.data(), count);
+      msgpack::unpack(result, &rbuf[rdispls[i]], rcounts[i]);
 
       vector<pair<K, V>> received;
       result.get().convert(&received);
