@@ -29,7 +29,9 @@ class KeyValueRdd: public Rdd {
     Shuffle(hash_fn);
     MPI::COMM_WORLD.Barrier();
 
+    cout << "sort start..." << flush;
     sort(kvs_.begin(), kvs_.end());
+    cout << "end" << endl;
 
     auto prev = kvs_[0].first;
     vector<V> values;
@@ -53,23 +55,23 @@ class KeyValueRdd: public Rdd {
   vector<pair<K, V>> kvs_;
 
   void Shuffle(hash<K> hash_fn) {
-    vector<vector<pair<K, V>>> bufs(n_workers_);
+    vector<msgpack::sbuffer> bufs(n_workers_);
     for (auto kv : kvs_) {
       int dest = hash_fn(kv.first) % n_workers_;
-      bufs[dest].push_back(kv);
+      msgpack::pack(&bufs[dest], kv);
     }
 
-    //  pack the key-values
-    msgpack::sbuffer sbuf;
     vector<int> scounts(n_workers_);
     vector<int> sdispls(n_workers_);
     int disp = 0;
     for (int i = 0; i < n_workers_; ++i) {
-      msgpack::pack(sbuf, bufs[i]);
-      int count = sbuf.size() - disp;
+      int count = bufs[i].size();
       scounts[i] = count;
       sdispls[i] = disp;
       disp += count;
+      if (i > 0) {
+        bufs[0].write(bufs[i].data(), count);
+      }
     }
 
     vector<int> rcounts(n_workers_);
@@ -84,20 +86,22 @@ class KeyValueRdd: public Rdd {
       disp += rcounts[i];
     }
 
-    unique_ptr<char[]> rbuf(new char[accumulate(rcounts.begin(), rcounts.end(), 0)]);
-    MPI::COMM_WORLD.Alltoallv(sbuf.data(), scounts.data(), sdispls.data(), MPI::CHAR,
-                              rbuf.get(), rcounts.data(), rdispls.data(), MPI::CHAR);
+    msgpack::unpacker upc;
+    upc.reserve_buffer(accumulate(rcounts.begin(), rcounts.end(), 0));
+    MPI::COMM_WORLD.Alltoallv(bufs[0].data(), scounts.data(), sdispls.data(), MPI::CHAR,
+                              upc.buffer(), rcounts.data(), rdispls.data(), MPI::CHAR);
+    upc.buffer_consumed(accumulate(rcounts.begin(), rcounts.end(), 0));
 
     kvs_.clear();
-    free(sbuf.release());
+    for (auto &buf : bufs) {
+      free(buf.release());
+    }
 
-    for (int i = 0; i < n_workers_; ++i) {
-      msgpack::unpacked result;
-      msgpack::unpack(result, &rbuf[rdispls[i]], rcounts[i]);
-
-      vector<pair<K, V>> received;
+    msgpack::unpacked result;
+    while (upc.next(&result)) {
+      pair<K, V> received;
       result.get().convert(&received);
-      kvs_.insert(kvs_.begin(), received.begin(), received.end());
+      kvs_.push_back(received);
     }
   }
 };

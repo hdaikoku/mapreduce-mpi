@@ -18,7 +18,7 @@ class TextRdd: public Rdd {
   unique_ptr<KeyValueRdd<K, V>> Map(Mapper<K, V, IV> &mapper) {
     vector<pair<string, int>> key_values;
     string line;
-    string str(chunk_.get());
+    string str(chunk_.get(), chunk_size_);
 
     if (remote_line_) {
       // append the first line of the succeeding proc.
