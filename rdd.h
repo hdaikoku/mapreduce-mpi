@@ -5,6 +5,7 @@
 #ifndef RDD_MAPREDUCE_RDD_H
 #define RDD_MAPREDUCE_RDD_H
 
+#include <memory>
 #include <string>
 #include <mpi.h>
 
