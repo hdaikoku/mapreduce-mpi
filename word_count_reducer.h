@@ -10,7 +10,7 @@
 class WordCountReducer: public Reducer<string, int> {
 
  public:
-  virtual pair<string, int> Reduce(string k, const vector<int> &vector1);
+  virtual pair<string, int> Reduce(const string &k, const vector<int> &vector1);
 };
 
 
