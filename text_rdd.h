@@ -35,8 +35,12 @@ class TextRdd: public Rdd {
       mapper.Map(key_values, line);
     }
 
+    ReleaseBuffer();
+
     return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(key_values));
   }
+
+  virtual void ReleaseBuffer() override;
 
  private:
   int remote_line_length_;

@@ -40,3 +40,7 @@ void TextRdd::SplitFile(const char *filename) {
   }
 }
 
+void TextRdd::ReleaseBuffer() {
+  Rdd::ReleaseBuffer();
+  remote_line_.release();
+}

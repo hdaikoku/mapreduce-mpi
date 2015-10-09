@@ -45,3 +45,8 @@ void Rdd::SplitFile(const char *filename) {
 
   file.Close();
 }
+
+
+void Rdd::ReleaseBuffer() {
+  chunk_.release();
+}

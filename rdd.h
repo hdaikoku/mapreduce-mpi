@@ -5,6 +5,7 @@
 #ifndef RDD_MAPREDUCE_RDD_H
 #define RDD_MAPREDUCE_RDD_H
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <mpi.h>
@@ -21,6 +22,7 @@ class Rdd {
   }
 
   virtual void SplitFile(const char *filename);
+  virtual void ReleaseBuffer();
 
  protected:
   int n_workers_;
