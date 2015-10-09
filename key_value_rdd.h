@@ -29,23 +29,46 @@ class KeyValueRdd: public Rdd {
     Shuffle(hash_fn);
 
     cout << "sort start..." << flush;
-    sort(kvs_.begin(), kvs_.end());
+    vector<const pair<K, V> *> ref;
+    ref.reserve(kvs_.size());
+    for (const pair<K, V> &kv : kvs_) {
+      ref.push_back(&kv);
+    }
+    sort(ref.begin(), ref.end(),
+         [](const pair<K, V> *a, const pair<K, V> *b) {
+           return a->first < b->first;
+         });
+//    sort(kvs_.begin(), kvs_.end());
     cout << "end" << endl;
 
-    auto prev = kvs_[0].first;
+    auto prev = ref[0]->first;
     vector<V> values;
     vector<pair<K, V>> new_kvs;
-    for (auto kv : kvs_) {
-      if (prev != kv.first) {
+    for (auto kv : ref) {
+      if (prev != kv->first) {
         new_kvs.push_back(reducer.Reduce(prev, values));
         values.clear();
-        prev = kv.first;
+        prev = kv->first;
       }
-      values.push_back(kv.second);
+      values.push_back(kv->second);
     }
     if (values.size() > 0) {
       new_kvs.push_back(reducer.Reduce(prev, values));
     }
+//    auto prev = kvs_[0].first;
+//    vector<V> values;
+//    vector<pair<K, V>> new_kvs;
+//    for (auto kv : kvs_) {
+//      if (prev != kv.first) {
+//        new_kvs.push_back(reducer.Reduce(prev, values));
+//        values.clear();
+//        prev = kv.first;
+//      }
+//      values.push_back(kv.second);
+//    }
+//    if (values.size() > 0) {
+//      new_kvs.push_back(reducer.Reduce(prev, values));
+//    }
 
     return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(new_kvs));
   }
