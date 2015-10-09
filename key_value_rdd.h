@@ -27,7 +27,6 @@ class KeyValueRdd: public Rdd {
   unique_ptr<KeyValueRdd> Reduce(Reducer<K, V> &reducer, hash<K> hash_fn) {
     MPI::COMM_WORLD.Barrier();
     Shuffle(hash_fn);
-    MPI::COMM_WORLD.Barrier();
 
     cout << "sort start..." << flush;
     sort(kvs_.begin(), kvs_.end());
