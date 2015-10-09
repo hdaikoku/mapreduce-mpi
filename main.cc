@@ -15,9 +15,13 @@ int main(int argc, char **argv) {
   }
 
   auto text_rdd = TextRdd::FromTextFile(argv[1]);
+  double begin = MPI::Wtime();
   auto key_value_rdd = text_rdd->Map(wcm);
   auto new_kvs = key_value_rdd->Reduce(wcr, hash<string>());
+  double end = MPI::Wtime();
+
   new_kvs->PrintPairs();
+  cout << "Total Map/Reduce time: " << end - begin << " seconds." << endl;
 
   return 0;
 }
