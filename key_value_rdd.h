@@ -12,50 +12,44 @@
 #include "msgpack.hpp"
 
 template<typename K, typename V>
-class KeyValueRdd: public Rdd {
+class KeyMultiValuesRdd: public Rdd {
 
  public:
-  KeyValueRdd() { }
-  KeyValueRdd(const vector<pair<K, V>> &kvs) : kvs_(kvs) { }
-
-  void PrintPairs() {
-    for (auto kv : kvs_) {
-      cout << "(" << kv.first << ", " << kv.second << ")" << endl;
+  KeyMultiValuesRdd() { }
+  KeyMultiValuesRdd(const vector<pair<K, V>> &kvs) {
+    for (auto kv : kvs) {
+      kmvs_[kv.first].push_back(kv.second);
     }
   }
 
-  unique_ptr<KeyValueRdd> Reduce(Reducer<K, V> &reducer, hash<K> hash_fn) {
+  void PrintPairs() {
+    for (auto kv : kmvs_) {
+      cout << "(" << kv.first << ", {";
+      for (auto v : kv.second) {
+        cout << v << ", ";
+      }
+      cout << "})" << endl;
+    }
+  }
+
+  unique_ptr<KeyMultiValuesRdd> Reduce(Reducer<K, V> &reducer, hash<K> hash_fn) {
     MPI::COMM_WORLD.Barrier();
     Shuffle(hash_fn);
 
-    cout << "sort start..." << flush;
-    sort(kvs_.begin(), kvs_.end());
-    cout << "end" << endl;
-
-    auto prev = kvs_[0].first;
-    vector<V> values;
     vector<pair<K, V>> new_kvs;
-    for (auto kv : kvs_) {
-      if (prev != kv.first) {
-        new_kvs.push_back(reducer.Reduce(prev, values));
-        values.clear();
-        prev = kv.first;
-      }
-      values.push_back(kv.second);
-    }
-    if (values.size() > 0) {
-      new_kvs.push_back(reducer.Reduce(prev, values));
+    for (auto kmv : kmvs_) {
+      new_kvs.push_back(reducer.Reduce(kmv.first, kmv.second));
     }
 
-    return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(new_kvs));
+    return unique_ptr<KeyMultiValuesRdd<K, V>>(new KeyMultiValuesRdd<K, V>(new_kvs));
   }
 
  private:
-  vector<pair<K, V>> kvs_;
+  unordered_map<K, vector<V>> kmvs_;
 
   void Shuffle(hash<K> hash_fn) {
     vector<msgpack::sbuffer> bufs(n_workers_);
-    for (auto kv : kvs_) {
+    for (auto kv : kmvs_) {
       int dest = hash_fn(kv.first) % n_workers_;
       msgpack::pack(&bufs[dest], kv);
     }
@@ -91,16 +85,16 @@ class KeyValueRdd: public Rdd {
                               upc.buffer(), rcounts.data(), rdispls.data(), MPI::CHAR);
     upc.buffer_consumed(accumulate(rcounts.begin(), rcounts.end(), 0));
 
-    kvs_.clear();
+    kmvs_.clear();
     for (auto &buf : bufs) {
       free(buf.release());
     }
 
     msgpack::unpacked result;
     while (upc.next(&result)) {
-      pair<K, V> received;
+      pair<K, vector<V>> received;
       result.get().convert(&received);
-      kvs_.push_back(received);
+      copy(received.second.begin(), received.second.end(), back_inserter(kmvs_[received.first]));
     }
   }
 };

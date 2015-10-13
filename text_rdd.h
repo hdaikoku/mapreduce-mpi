@@ -15,7 +15,7 @@ class TextRdd: public Rdd {
   static unique_ptr<TextRdd> FromTextFile(const char *filename);
 
   template<typename K, typename V, typename IV>
-  unique_ptr<KeyValueRdd<K, V>> Map(Mapper<K, V, IV> &mapper) {
+  unique_ptr<KeyMultiValuesRdd<K, V>> Map(Mapper<K, V, IV> &mapper) {
     vector<pair<string, int>> key_values;
     string line;
     string str(chunk_.get(), chunk_size_);
@@ -37,7 +37,7 @@ class TextRdd: public Rdd {
 
     ReleaseBuffer();
 
-    return unique_ptr<KeyValueRdd<K, V>>(new KeyValueRdd<K, V>(key_values));
+    return unique_ptr<KeyMultiValuesRdd<K, V>>(new KeyMultiValuesRdd<K, V>(key_values));
   }
 
   virtual void ReleaseBuffer() override;
