@@ -5,7 +5,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # requires MPI
 find_package(MPI REQUIRED)
-include_directories(${MPI_INCLUDE_PATH})
 
 # requires msgpack
 include_directories(${RDDWithMapReduce_SOURCE_DIR}/include)

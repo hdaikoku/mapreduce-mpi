@@ -22,6 +22,8 @@ class KeyMultiValuesRdd: public Rdd {
     }
   }
 
+  KeyMultiValuesRdd(const unordered_map<K, vector<V>> &kmvs) : kmvs_(kmvs) { }
+
   void PrintPairs() {
     for (auto kv : kmvs_) {
       cout << "(" << kv.first << ", {";

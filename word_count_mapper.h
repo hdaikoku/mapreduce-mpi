@@ -11,7 +11,8 @@
 class WordCountMapper: public Mapper<string, int, string &> {
 
  public:
-  virtual void Map(vector<pair<string, int>> &key_values, string &iv) override;
+  virtual void Map(unordered_map<string, vector<int>> &map, string &iv) override;
+
 };
 
 

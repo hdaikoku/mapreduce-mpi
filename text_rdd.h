@@ -16,7 +16,7 @@ class TextRdd: public Rdd {
 
   template<typename K, typename V, typename IV>
   unique_ptr<KeyMultiValuesRdd<K, V>> Map(Mapper<K, V, IV> &mapper) {
-    vector<pair<string, int>> key_values;
+    unordered_map<string, vector<int>> key_values;
     string line;
     string str(chunk_.get(), chunk_size_);
 

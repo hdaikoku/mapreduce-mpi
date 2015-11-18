@@ -6,13 +6,14 @@
 #define RDD_MAPREDUCE_MAPPER_H
 
 #include <vector>
+#include <unordered_map>
 
 using namespace std;
 
 template<typename K, typename V, typename IV>
 class Mapper {
  public:
-  virtual void Map(vector<pair<K, V>> &, IV) = 0;
+  virtual void Map(unordered_map<K, vector<V>> &, IV) = 0;
 };
 
 #endif //RDD_MAPREDUCE_MAPPER_H
